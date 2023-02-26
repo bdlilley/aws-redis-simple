@@ -11,7 +11,7 @@ When deployed as a pod for environment validation, the /liveness endpoint attemp
 
 TLS is available in aws and uses certs created by a public AWS CA (unlike RDS which is a special non-public bundle) - so any distro's recent public bundle should work.
 
-**TLS on mac >= 12.x** - the AWS certs do not comply with SCT verification - this requires TLS verification be disabled (the connection is still TLS, just without cert verification).  A darwin check has been hard-coded into this example [here]().
+**TLS on mac >= 12.x** - the AWS certs do not comply with SCT verification - this requires TLS verification be disabled (the connection is still TLS, just without cert verification).  A darwin check has been hard-coded into this example [here](https://github.com/bensolo-io/aws-redis-simple/blob/7a3e33dbf4df8436342961c21544c1a12e155967/main.go#L51-L56).
 
 # requirements
 
@@ -21,6 +21,8 @@ An elasticache redis instance with:
 * auth token configured
 * tls in transist
 * network connectivity from client pod (security groups, subnet placement, etc.)
+
+TODO - link to terraform examples repo
 
 # usage
 
@@ -37,6 +39,9 @@ stringData:
   token: ${REDIS_PASSWORD}
   address: ${REDIS_ADDR}
 EOF
+```
+Deploy as a pod (attempts to set and get a key each time readiness or liveness is requested; pod will not be healthy if anything fails):
 
+```bash
 kubectl apply -k ./deploy/kustomize --context $REMOTE_CONTEXT1
 ```
