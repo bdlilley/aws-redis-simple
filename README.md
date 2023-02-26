@@ -5,11 +5,11 @@ A very simple container that serves 2 purposes:
 * demonstrate golang as an aws elasticache client
 * validate elasticache secure config / connectivity
 
-When deployed as a pod for environment validation, the /liveness endpoint attempts to set a key with the current timestamp, then get the key to make sure it was written.
+When deployed as a pod for environment validation, the /liveness and /readiness endpoints attempt to set a key with the current timestamp, then get the key to make sure it was written.
 
 # tls
 
-TLS is available in aws and uses certs created by a public AWS CA (unlike RDS which is a special non-public bundle) - so any distro's recent public bundle should work.
+TLS is available in aws and uses certs created by a public AWS CA (unlike RDS which is a special non-public bundle) - so public bundles from any distro should work.  The [Dockerfile](./Dockerfile) in this repo uses certs from `alpine:latest`.
 
 **TLS on mac >= 12.x** - the AWS certs do not comply with SCT verification - this requires TLS verification be disabled (the connection is still TLS, just without cert verification).  A darwin check has been hard-coded into this example [here](https://github.com/bensolo-io/aws-redis-simple/blob/7a3e33dbf4df8436342961c21544c1a12e155967/main.go#L51-L56).
 
