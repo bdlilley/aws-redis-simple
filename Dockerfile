@@ -1,5 +1,8 @@
 # kodacd/aws-elasticache-redis-tester:latest
-# docker buildx build . -t kodacd/aws-elasticache-redis-tester:latest
+# docker buildx build --platform linux/amd64,linux/arm64 --push -t kodacd/aws-elasticache-redis-tester:latest . 
+FROM alpine:latest as certs
+
+RUN apk --update add ca-certificates
 
 FROM golang:1.19 as builder
 
@@ -11,11 +14,14 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=1 go build -o /app/main
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 go build -o /app/main
 
-# FROM scratch
+FROM scratch
 
-# COPY --from=builder /app/main /main
+COPY --from=certs /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
-ENTRYPOINT [ "/app/main" ]
+COPY --from=builder /app/main /main
+
+ENTRYPOINT [ "/main" ]
 

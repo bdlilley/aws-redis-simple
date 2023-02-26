@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -28,6 +29,7 @@ func init() {
 	cfg = config.Config{}
 	if err := env.Parse(&cfg); err != nil {
 		fmt.Printf("%+v\n", err)
+		os.Exit(-1)
 	}
 	level, err := zerolog.ParseLevel(cfg.LogLevel)
 	if err != nil {
@@ -37,49 +39,62 @@ func init() {
 }
 
 func main() {
-	rdb := redis.NewClient(&redis.Options{
+	redisOpts := &redis.Options{
 		Addr: cfg.RedisAddr,
 		// DB index 0 is required for elasticache
 		DB:       0,
 		Password: cfg.RedisPassword,
-		TLSConfig: &tls.Config{
-			// see https://github.com/golang/go/issues/51991
-			// TLDR: mac os forcing SCT validation, amazon wont provide SCT in certs
-			InsecureSkipVerify: true,
-		},
-	})
+		// empty tls.Config is required to enable TLS - uses OS cert chain for verification
+		TLSConfig: &tls.Config{},
+	}
+
+	// see https://github.com/golang/go/issues/51991
+	// TLDR: mac os forces SCT validation, amazon wont provide SCT in certs
+	if strings.EqualFold(runtime.GOOS, "darwin") {
+		log.Warn().Msg("detected darwin runtime - disabling tls verification; for more info see https://github.com/golang/go/issues/51991")
+		redisOpts.TLSConfig.InsecureSkipVerify = true
+	}
+
+	rdb := redis.NewClient(redisOpts)
 	log.Info().Msgf("connected to redis ")
+
+	checkKey := func(suffix string) func(ctx *gin.Context) {
+		return func(ctx *gin.Context) {
+			now := time.Now().String()
+			key := fmt.Sprintf("%s%s", cfg.RedisTestKeyName, suffix)
+
+			err := rdb.Set(ctx, key, now, 0).Err()
+			if err != nil {
+				err = fmt.Errorf("could not set key %s: %s", key, err)
+				log.Error().Err(err).Msg("")
+				ctx.String(500, err.Error())
+				return
+			}
+
+			redisNow, err := rdb.Get(ctx, key).Result()
+			if err != nil {
+				err = fmt.Errorf("could not get key %s: %s", key, err)
+				log.Error().Err(err).Msg("")
+				ctx.String(500, err.Error())
+				return
+			}
+
+			if !strings.EqualFold(now, redisNow) {
+				err = fmt.Errorf("redis operation succeeded for key %s but values do not match: %s != %s", key, now, redisNow)
+				log.Error().Err(err).Msg("")
+				ctx.String(500, err.Error())
+				return
+			}
+
+			log.Debug().Msgf("key %s verified with value %s", key, redisNow)
+			ctx.String(200, fmt.Sprintf("ok %s", redisNow))
+		}
+	}
 
 	ginEngine := gin.New()
 	ginEngine.Use(gin.Recovery())
-	ginEngine.GET("/", func(ctx *gin.Context) {
-		now := time.Now().String()
-
-		err := rdb.Set(ctx, "aws_redis_sample_now", now, 0).Err()
-		if err != nil {
-			err = fmt.Errorf("could not set key: %s", err)
-			log.Error().Err(err).Msg("")
-			ctx.String(500, err.Error())
-			return
-		}
-
-		redisNow, err := rdb.Get(ctx, "aws_redis_sample_now").Result()
-		if err != nil {
-			err = fmt.Errorf("could not get key: %s", err)
-			log.Error().Err(err).Msg("")
-			ctx.String(500, err.Error())
-			return
-		}
-
-		if !strings.EqualFold(now, redisNow) {
-			err = fmt.Errorf("redis operation succeeded but values do not match: %s != %s", now, redisNow)
-			log.Error().Err(err).Msg("")
-			ctx.String(500, err.Error())
-			return
-		}
-
-		ctx.String(200, fmt.Sprintf("ok %s", redisNow))
-	})
+	ginEngine.GET("/readiness", checkKey("readiness"))
+	ginEngine.GET("/liveness", checkKey("liveness"))
 
 	startGinServerWithGracefulShutdown(ginEngine, fmt.Sprintf(":%d", cfg.Port))
 }
