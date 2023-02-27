@@ -6,6 +6,6 @@ type Config struct {
 	RedisAddr               string `env:"REDIS_ADDR,required"`
 	RedisDbIndex            int    `env:"REDIS_DB_INDEX" envDefault:"0"`
 	RedisPassword           string `env:"REDIS_PASSWORD,required"`
-	RedisTestKeyName        string `env:"REDIS_TEST_KEY_NAME,required"`
+	RedisTestKeyName        string `env:"REDIS_TEST_KEY_NAME" envDefault:"local"`
 	RedisInsecureSkipVerify bool   `env:"REDIS_INSECURE_SKIP_VERIFY" envDefault:"false"`
 }

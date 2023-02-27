@@ -2,3 +2,4 @@
 .DS_Store
 aws-redis-simple
 main
+.redis-config.txt

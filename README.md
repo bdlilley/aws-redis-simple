@@ -24,12 +24,12 @@ An elasticache redis instance with:
 
 TODO - link to terraform examples repo
 
-# usage
+# run as a k8s pod
 
 Create a secret containing elasticache redis endopint and auth token:
 
 ```bash
-kubectl apply --context $REMOTE_CONTEXT1 -f- <<EOF
+kubectl apply --context $MGMT_CONTEXT -f- <<EOF
 kind: Secret
 apiVersion: v1
 metadata:
@@ -43,5 +43,27 @@ EOF
 Deploy as a pod (attempts to set and get a key each time readiness or liveness is requested; pod will not be healthy if anything fails):
 
 ```bash
-kubectl apply -k ./deploy/kustomize --context $REMOTE_CONTEXT1
+kubectl apply -k ./deploy/kustomize --context $MGMT_CONTEXT
+```
+
+# run as docker image
+
+```bash
+echo "REDIS_ADDR=${REDIS_ADDR}" > .redis-config.txt
+echo "REDIS_PASSWORD=${REDIS_PASSWORD}" >> .redis-config.txt
+echo "LOG_LEVEL=debug" >> .redis-config.txt
+
+docker run -p 8080:8080 --env-file .redis-config.txt kodacd/aws-elasticache-redis-tester:latest
+```
+
+check for the log output "initial redis check OK" (you can also curl the /liveliness endpoint):
+
+```
+{"level":"info","time":"2023-02-27T14:27:05Z","message":"initial redis check OK"}
+```
+
+# run as binary
+
+```bash
+REDIS_ADDR="" REDIS_PASSWORD="" LOG_LEVEL="debug" go run main.go
 ```

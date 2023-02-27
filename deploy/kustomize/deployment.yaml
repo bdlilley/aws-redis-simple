@@ -51,11 +51,11 @@ spec:
           httpGet:
             path: /liveness
             port: 8080
-          initialDelaySeconds: 10
+          initialDelaySeconds: 5
           timeoutSeconds: 2
         readinessProbe:
           httpGet:
             path: /readiness
             port: 8080
-          initialDelaySeconds: 10
+          initialDelaySeconds: 5
           timeoutSeconds: 2

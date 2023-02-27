@@ -22,7 +22,10 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var cfg config.Config
+var (
+	cfg config.Config
+	rdb redis.UniversalClient
+)
 
 func init() {
 	gin.SetMode(gin.ReleaseMode)
@@ -54,48 +57,60 @@ func main() {
 		redisUOpts.TLSConfig.InsecureSkipVerify = true
 	}
 
-	rdb := redis.NewUniversalClient(redisUOpts)
-	log.Info().Msgf("connected to redis ")
+	rdb = redis.NewUniversalClient(redisUOpts)
+	log.Info().Msgf("redis client created for %s", cfg.RedisAddr)
 
-	checkKey := func(suffix string) func(ctx *gin.Context) {
-		return func(ctx *gin.Context) {
-			now := time.Now().String()
-			key := fmt.Sprintf("%s%s", cfg.RedisTestKeyName, suffix)
-
-			err := rdb.Set(ctx, key, now, 0).Err()
-			if err != nil {
-				err = fmt.Errorf("could not set key %s: %s", key, err)
-				log.Error().Err(err).Msg("")
-				ctx.String(500, err.Error())
+	// initial redis check for pod readiness
+	func() {
+		tReady := time.NewTicker(time.Second * 5)
+		for {
+			if err := checkRedis(context.Background(), "-readiness"); err != nil {
+				log.Error().Msgf("failed initial redis check, trying again in 5 seconds: %s", err)
+			} else {
 				return
 			}
-
-			redisNow, err := rdb.Get(ctx, key).Result()
-			if err != nil {
-				err = fmt.Errorf("could not get key %s: %s", key, err)
-				log.Error().Err(err).Msg("")
-				ctx.String(500, err.Error())
-				return
-			}
-
-			if !strings.EqualFold(now, redisNow) {
-				err = fmt.Errorf("redis operation succeeded for key %s but values do not match: %s != %s", key, now, redisNow)
-				log.Error().Err(err).Msg("")
-				ctx.String(500, err.Error())
-				return
-			}
-
-			log.Debug().Msgf("key %s verified with value %s", key, redisNow)
-			ctx.String(200, fmt.Sprintf("ok %s", redisNow))
+			<-tReady.C
 		}
-	}
+	}()
+
+	log.Info().Msg("initial redis check OK")
 
 	ginEngine := gin.New()
 	ginEngine.Use(gin.Recovery())
-	ginEngine.GET("/readiness", checkKey("readiness"))
-	ginEngine.GET("/liveness", checkKey("liveness"))
+	// if we make it this far the initial check passed, so just return 200
+	ginEngine.GET("/readiness", func(ctx *gin.Context) { ctx.String(200, "ok") })
+	ginEngine.GET("/liveness", func(ctx *gin.Context) {
+		if err := checkRedis(ctx, "-liveness"); err != nil {
+			log.Error().Msgf("failed /liveness: %s", err.Error())
+			ctx.String(500, err.Error())
+			return
+		}
+		log.Debug().Msg("/liveness OK")
+		ctx.String(200, "ok")
+	})
 
 	startGinServerWithGracefulShutdown(ginEngine, fmt.Sprintf(":%d", cfg.Port))
+}
+
+func checkRedis(ctx context.Context, keySuffix string) error {
+	now := time.Now().String()
+	key := fmt.Sprintf("%s%s", cfg.RedisTestKeyName, keySuffix)
+
+	err := rdb.Set(ctx, key, now, 0).Err()
+	if err != nil {
+		return fmt.Errorf("could not set key %s: %s", key, err)
+	}
+
+	redisNow, err := rdb.Get(ctx, key).Result()
+	if err != nil {
+		return fmt.Errorf("could not get key %s: %s", key, err)
+	}
+
+	if !strings.EqualFold(now, redisNow) {
+		return fmt.Errorf("redis operation succeeded for key %s but values do not match: %s != %s", key, now, redisNow)
+	}
+
+	return nil
 }
 
 func startGinServerWithGracefulShutdown(r *gin.Engine, listenerAddr string) {
