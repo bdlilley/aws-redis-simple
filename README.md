@@ -5,7 +5,7 @@ A very simple container that serves 2 purposes:
 * demonstrate golang as an aws elasticache client
 * validate elasticache secure config / connectivity
 
-When deployed as a pod for environment validation, the /liveness and /readiness endpoints attempt to set a key with the current timestamp, then get the key to make sure it was written.
+On startup the container attempts to set/get a key before configuring the /readiness endpoint in the gin router, so the pod will never become healthy if elasticache isn't working.  The /liveness endpoint performs the set/get on each request.
 
 # tls
 
