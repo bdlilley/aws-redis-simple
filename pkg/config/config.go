@@ -3,6 +3,7 @@ package config
 type Config struct {
 	Port                    int    `env:"PORT" envDefault:"8080"`
 	LogLevel                string `env:"LOG_LEVEL" envDefault:"info"`
+	LogNoColor              bool   `env:"LOG_NO_COLOR" envDefault:"false"`
 	RedisAddr               string `env:"REDIS_ADDR,required"`
 	RedisDbIndex            int    `env:"REDIS_DB_INDEX" envDefault:"0"`
 	RedisPassword           string `env:"REDIS_PASSWORD,required"`

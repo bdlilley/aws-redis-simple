@@ -17,14 +17,21 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"github.com/caarlos0/env/v7"
+	"github.com/fatih/color"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
 var (
-	cfg config.Config
-	rdb redis.UniversalClient
+	cfg    config.Config
+	rdb    redis.UniversalClient
+	yellow = color.New(color.FgYellow).SprintFunc()
+	red    = color.New(color.FgRed).SprintFunc()
+	green  = color.New(color.FgGreen).SprintFunc()
+	// red    = color.FgRed.Render
+	// green  = color.FgGreen.Render
+	// yellow = color.FgYellow.Render
 )
 
 func init() {
@@ -39,21 +46,25 @@ func init() {
 		level = zerolog.InfoLevel
 	}
 	zerolog.SetGlobalLevel(level)
+	color.NoColor = cfg.LogNoColor
 }
 
 func main() {
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, NoColor: cfg.LogNoColor})
 	redisUOpts := &redis.UniversalOptions{
 		Addrs:    []string{cfg.RedisAddr},
 		DB:       cfg.RedisDbIndex,
 		Password: cfg.RedisPassword,
 		// empty tls.Config is required to enable TLS - uses OS cert chain for verification
-		TLSConfig: &tls.Config{},
+		TLSConfig: &tls.Config{
+			InsecureSkipVerify: cfg.RedisInsecureSkipVerify,
+		},
 	}
 
 	// see https://github.com/golang/go/issues/51991
 	// TLDR: mac os forces SCT validation, amazon wont provide SCT in certs
-	if strings.EqualFold(runtime.GOOS, "darwin") || cfg.RedisInsecureSkipVerify {
-		log.Warn().Msg("detected darwin runtime - disabling tls verification; for more info see https://github.com/golang/go/issues/51991")
+	if strings.EqualFold(runtime.GOOS, "darwin") {
+		log.Warn().Msgf("%s for more info see https://github.com/golang/go/issues/51991", yellow("detected darwin runtime - disabling tls verification;"))
 		redisUOpts.TLSConfig.InsecureSkipVerify = true
 	}
 
@@ -65,7 +76,7 @@ func main() {
 		tReady := time.NewTicker(time.Second * 5)
 		for {
 			if err := checkRedis(context.Background(), "-readiness"); err != nil {
-				log.Error().Msgf("failed initial redis check, trying again in 5 seconds: %s", err)
+				log.Error().Msgf(red("failed initial redis check, trying again in 5 seconds: %s"), err)
 			} else {
 				return
 			}
@@ -73,7 +84,7 @@ func main() {
 		}
 	}()
 
-	log.Info().Msg("initial redis check OK")
+	log.Info().Msg(green("initial redis check OK"))
 
 	ginEngine := gin.New()
 	ginEngine.Use(gin.Recovery())
@@ -81,11 +92,11 @@ func main() {
 	ginEngine.GET("/readiness", func(ctx *gin.Context) { ctx.String(200, "ok") })
 	ginEngine.GET("/liveness", func(ctx *gin.Context) {
 		if err := checkRedis(ctx, "-liveness"); err != nil {
-			log.Error().Msgf("failed /liveness: %s", err.Error())
+			log.Error().Msgf(red("failed /liveness: %s"), err.Error())
 			ctx.String(500, err.Error())
 			return
 		}
-		log.Debug().Msg("/liveness OK")
+		log.Debug().Msg(green("/liveness OK"))
 		ctx.String(200, "ok")
 	})
 
