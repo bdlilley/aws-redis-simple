@@ -39,9 +39,8 @@ func init() {
 }
 
 func main() {
-	redisOpts := &redis.Options{
-		Addr: cfg.RedisAddr,
-		// DB index 0 is required for elasticache
+	redisUOpts := &redis.UniversalOptions{
+		Addrs:    []string{cfg.RedisAddr},
 		DB:       cfg.RedisDbIndex,
 		Password: cfg.RedisPassword,
 		// empty tls.Config is required to enable TLS - uses OS cert chain for verification
@@ -52,10 +51,10 @@ func main() {
 	// TLDR: mac os forces SCT validation, amazon wont provide SCT in certs
 	if strings.EqualFold(runtime.GOOS, "darwin") || cfg.RedisInsecureSkipVerify {
 		log.Warn().Msg("detected darwin runtime - disabling tls verification; for more info see https://github.com/golang/go/issues/51991")
-		redisOpts.TLSConfig.InsecureSkipVerify = true
+		redisUOpts.TLSConfig.InsecureSkipVerify = true
 	}
 
-	rdb := redis.NewClient(redisOpts)
+	rdb := redis.NewUniversalClient(redisUOpts)
 	log.Info().Msgf("connected to redis ")
 
 	checkKey := func(suffix string) func(ctx *gin.Context) {
