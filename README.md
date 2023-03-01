@@ -22,7 +22,7 @@ An elasticache redis instance with:
 * tls in transist
 * network connectivity from client pod (security groups, subnet placement, etc.)
 
-This [terraform example](https://github.com/solo-io/terraform-examples/tree/main/terraform/redis-1region) creates a vpc, redis cluster, and eks cluster for testing.
+This [terraform example](https://github.com/bensolo-io/cloud-gitops-examples/tree/main/terraform/redis-1region) creates a vpc, redis cluster, and eks cluster for testing.
 
 # run as a k8s pod
 
