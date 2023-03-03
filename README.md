@@ -55,7 +55,7 @@ The tester pod is based on >>> which contains several network testing tools.  It
 
 ```bash
 # auth token is set in REDISCLI_AUTH which is picked up by redis-cli
-kubectl exec -it $(kubectl get pods -n default -l app=redis-tester -oname) -n default -- bash -c '/usr/bin/redis-cli -h ${REDIS_HOST} -p ${REDIS_POST} --tls -n 0'
+kubectl exec -it $(kubectl get pods -n default -l app=redis-tester -oname) -n default -- bash -c '/usr/bin/redis-cli -h ${REDIS_HOST} -p ${REDIS_PORT} --tls -n 0'
 ```
 
 # run as docker image
