@@ -51,8 +51,9 @@ func init() {
 
 func main() {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, NoColor: cfg.LogNoColor})
+	redisAddr := fmt.Sprintf("%s:%s", cfg.RedisHost, cfg.RedisPort)
 	redisUOpts := &redis.UniversalOptions{
-		Addrs:    []string{cfg.RedisAddr},
+		Addrs:    []string{redisAddr},
 		DB:       cfg.RedisDbIndex,
 		Password: cfg.RedisPassword,
 		// empty tls.Config is required to enable TLS - uses OS cert chain for verification
@@ -69,7 +70,7 @@ func main() {
 	}
 
 	rdb = redis.NewUniversalClient(redisUOpts)
-	log.Info().Msgf("redis client created for %s", cfg.RedisAddr)
+	log.Info().Msgf("redis client created for %s", redisAddr)
 
 	// initial redis check for pod readiness
 	func() {
