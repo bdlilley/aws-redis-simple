@@ -26,6 +26,8 @@ This [terraform example](https://github.com/bensolo-io/cloud-gitops-examples/tre
 
 # run as a k8s pod
 
+**deploy**
+
 Create a secret containing elasticache redis endopint and auth token:
 
 ```bash
@@ -37,7 +39,8 @@ metadata:
   namespace: default
 stringData:
   token: ${REDIS_PASSWORD}
-  address: ${REDIS_ADDR}
+  host: ${REDIS_HOST}
+  port: ${REDIS_PORT}
 EOF
 ```
 Deploy as a pod (attempts to set and get a key each time readiness or liveness is requested; pod will not be healthy if anything fails):
@@ -46,10 +49,19 @@ Deploy as a pod (attempts to set and get a key each time readiness or liveness i
 kubectl apply -k ./deploy/kustomize --context $MGMT_CONTEXT
 ```
 
+**use redis-cli**
+
+The tester pod is based on >>> which contains several network testing tools.  It also has the `redis-cli` installed.
+
+```bash
+# auth token is set in REDISCLI_AUTH which is picked up by redis-cli
+kubectl exec -it $(kubectl get pods -n default -l app=redis-tester -oname) -n default -- bash -c '/usr/bin/redis-cli -h ${REDIS_HOST} -p ${REDIS_POST} --tls -n 0'
+```
+
 # run as docker image
 
 ```bash
-echo "REDIS_ADDR=${REDIS_ADDR}" > .redis-config.txt
+echo "REDIS_HOST=${REDIS_HOST}" > .redis-config.txt
 echo "REDIS_PASSWORD=${REDIS_PASSWORD}" >> .redis-config.txt
 echo "LOG_LEVEL=debug" >> .redis-config.txt
 

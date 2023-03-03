@@ -14,7 +14,7 @@ spec:
       labels:
         app: redis-tester
     spec:
-      containers:
+      containers: 
       - name: redis
         image: kodacd/aws-elasticache-redis-tester:latest
         imagePullPolicy: Always
@@ -23,12 +23,24 @@ spec:
           value:  debug  
         - name:  PORT
           value:  "8080"   
-        - name:  REDIS_ADDR
+        - name:  REDIS_HOST
           valueFrom:
             secretKeyRef:
               name:  redis-config
-              key:  address 
+              key:  host 
+        - name:  REDIS_PORT
+          valueFrom:
+            secretKeyRef:
+              name:  redis-config
+              key:  port
+              optional: true
         - name:  REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name:  redis-config
+              key:  token
+        # convenience for redis-cli client
+        - name:  REDISCLI_AUTH
           valueFrom:
             secretKeyRef:
               name:  redis-config

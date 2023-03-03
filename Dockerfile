@@ -19,6 +19,8 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 
 FROM nicolaka/netshoot
 
+RUN apk update && apk add redis
+
 COPY --from=certs /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
 COPY --from=builder /app/main /opt/main
