@@ -17,11 +17,11 @@ COPY . .
 RUN --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 go build -o /app/main
 
-FROM scratch
+FROM nicolaka/netshoot
 
 COPY --from=certs /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
-COPY --from=builder /app/main /main
+COPY --from=builder /app/main /opt/main
 
-ENTRYPOINT [ "/main" ]
+ENTRYPOINT [ "/opt/main" ]
 
