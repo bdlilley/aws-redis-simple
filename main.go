@@ -51,7 +51,7 @@ func init() {
 
 func main() {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, NoColor: cfg.LogNoColor})
-	redisAddr := fmt.Sprintf("%s:%s", cfg.RedisHost, cfg.RedisPort)
+	redisAddr := fmt.Sprintf("%s:%d", cfg.RedisHost, cfg.RedisPort)
 	redisUOpts := &redis.UniversalOptions{
 		Addrs:    []string{redisAddr},
 		DB:       cfg.RedisDbIndex,
