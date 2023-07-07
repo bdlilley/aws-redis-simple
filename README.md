@@ -36,7 +36,7 @@ kind: Secret
 apiVersion: v1
 metadata:
   name: redis-config
-  namespace: default
+  namespace: gloo-mesh
 stringData:
   token: ${REDIS_PASSWORD}
   host: ${REDIS_HOST}

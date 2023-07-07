@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: aws-elasticache-redis-tester
-  namespace: default
+  namespace: gloo-mesh
 spec:
   replicas: 1
   selector:
