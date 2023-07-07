@@ -5,7 +5,7 @@ type Config struct {
 	LogLevel                string `env:"LOG_LEVEL" envDefault:"info"`
 	LogNoColor              bool   `env:"LOG_NO_COLOR" envDefault:"false"`
 	RedisHost               string `env:"REDIS_HOST,required"`
-	RedisPort               int    `env:"REDIS_PORT" envDefault:"6397"`
+	RedisPort               int    `env:"REDIS_PORT" envDefault:"6379"`
 	RedisDbIndex            int    `env:"REDIS_DB_INDEX" envDefault:"0"`
 	RedisPassword           string `env:"REDIS_PASSWORD,required"`
 	RedisTestKeyName        string `env:"REDIS_TEST_KEY_NAME" envDefault:"local"`

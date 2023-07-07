@@ -56,11 +56,14 @@ func main() {
 		Addrs:    []string{redisAddr},
 		DB:       cfg.RedisDbIndex,
 		Password: cfg.RedisPassword,
+		Username: "",
 		// empty tls.Config is required to enable TLS - uses OS cert chain for verification
 		TLSConfig: &tls.Config{
 			InsecureSkipVerify: cfg.RedisInsecureSkipVerify,
 		},
 	}
+
+	log.Warn().Msgf("connecting with address %s, using password %t", redisAddr, cfg.RedisPassword != "")
 
 	// see https://github.com/golang/go/issues/51991
 	// TLDR: mac os forces SCT validation, amazon wont provide SCT in certs
@@ -68,6 +71,8 @@ func main() {
 		log.Warn().Msgf("%s for more info see https://github.com/golang/go/issues/51991", yellow("detected darwin runtime - disabling tls verification;"))
 		redisUOpts.TLSConfig.InsecureSkipVerify = true
 	}
+
+	log.Info().Msgf("%+v", redisUOpts)
 
 	rdb = redis.NewUniversalClient(redisUOpts)
 	log.Info().Msgf("redis client created for %s", redisAddr)
