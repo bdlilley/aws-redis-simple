@@ -23,7 +23,8 @@ RUN apk update && apk add redis
 
 COPY --from=certs /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
+COPY ./scripts/elasticache.sh /usr/local/bin/elasticache
+
 COPY --from=builder /app/main /opt/main
 
 ENTRYPOINT [ "/opt/main" ]
-

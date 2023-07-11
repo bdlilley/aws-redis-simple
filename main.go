@@ -78,19 +78,19 @@ func main() {
 	log.Info().Msgf("redis client created for %s", redisAddr)
 
 	// initial redis check for pod readiness
-	func() {
-		tReady := time.NewTicker(time.Second * 5)
-		for {
-			if err := checkRedis(context.Background(), "-readiness"); err != nil {
-				log.Error().Msgf(red("failed initial redis check, trying again in 5 seconds: %s"), err)
-			} else {
-				return
-			}
-			<-tReady.C
-		}
-	}()
+	// func() {
+	// 	tReady := time.NewTicker(time.Second * 5)
+	// 	for {
+	// 		if err := checkRedis(context.Background(), "-readiness"); err != nil {
+	// 			log.Error().Msgf(red("failed initial redis check, trying again in 5 seconds: %s"), err)
+	// 		} else {
+	// 			return
+	// 		}
+	// 		<-tReady.C
+	// 	}
+	// }()
 
-	log.Info().Msg(green("initial redis check OK"))
+	// log.Info().Msg(green("initial redis check OK"))
 
 	ginEngine := gin.New()
 	ginEngine.Use(gin.Recovery())
@@ -98,9 +98,9 @@ func main() {
 	ginEngine.GET("/readiness", func(ctx *gin.Context) { ctx.String(200, "ok") })
 	ginEngine.GET("/liveness", func(ctx *gin.Context) {
 		if err := checkRedis(ctx, "-liveness"); err != nil {
-			log.Error().Msgf(red("failed /liveness: %s"), err.Error())
-			ctx.String(500, err.Error())
-			return
+			log.Error().Msgf(red("failed redis check: %s"), err.Error())
+			// ctx.String(500, err.Error())
+			// return
 		}
 		log.Debug().Msg(green("/liveness OK"))
 		ctx.String(200, "ok")
